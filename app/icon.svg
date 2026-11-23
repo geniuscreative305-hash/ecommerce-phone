@@ -1,0 +1,19 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="jcGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0066FF" />
+      <stop offset="100%" stop-color="#004099" />
+    </linearGradient>
+    <linearGradient id="jcAccent" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="13" fill="url(#jcGradient)" />
+  <rect x="11" y="7" width="26" height="34" rx="5" stroke="#FFFFFF" stroke-width="2.4" fill="rgba(255, 255, 255, 0.08)" />
+  <rect x="20" y="10" width="8" height="2" rx="1" fill="#FFFFFF" fill-opacity="0.8" />
+  <path d="M17 19H22V27C22 28.6569 20.6569 30 19 30C17.8 30 17 29.3 17 29.3" stroke="url(#jcAccent)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M31 22C30 20.2 28.2 19 26 19C23.2386 19 21 21.2386 21 24C21 26.7614 23.2386 29 26 29C28.2 29 30 27.8 31 26" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" />
+  <circle cx="34" cy="11" r="2" fill="#38BDF8" />
+</svg>
+
