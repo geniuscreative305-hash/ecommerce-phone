@@ -3,7 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import BrandLogo from '@/components/BrandLogo';
-import { ExternalLink, User } from 'lucide-react';
+import { logoutAdmin } from '@/app/admin/login/actions';
+import { ExternalLink, LogOut, User } from 'lucide-react';
 
 export default function AdminTopBar() {
   return (
@@ -28,13 +29,23 @@ export default function AdminTopBar() {
         </Link>
       </div>
 
-      {/* Right: User Profile Indicator */}
+      {/* Right: User Profile & Logout Action */}
       <div className="flex items-center gap-3 text-xs">
-        <div className="flex items-center gap-1.5 text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+        <div className="flex items-center gap-1.5 text-slate-300">
           <User className="w-3.5 h-3.5 text-slate-400" />
-          <span className="font-medium">Administrator</span>
+          <span className="hidden sm:inline font-medium">Administrator</span>
         </div>
+
+        <form action={logoutAdmin}>
+          <button
+            type="submit"
+            className="flex items-center gap-1 text-slate-400 hover:text-red-400 transition px-2 py-1 rounded hover:bg-slate-800"
+            title="Kunci & Keluar"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Keluar</span>
+          </button>
+        </form>
       </div>
     </header>
   );
