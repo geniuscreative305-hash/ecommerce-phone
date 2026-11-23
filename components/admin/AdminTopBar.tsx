@@ -2,24 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import BrandLogo from '@/components/BrandLogo';
-import { ExternalLink, LogOut, User, Bell } from 'lucide-react';
+import { ExternalLink, User } from 'lucide-react';
 
 export default function AdminTopBar() {
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-    } catch {
-      // Ignored
-    }
-    router.push('/admin/login');
-  };
-
   return (
     <header className="h-12 bg-[#1D2327] text-white flex items-center justify-between px-4 sticky top-0 z-50 select-none shadow-md">
       {/* Left: WordPress Brand & Site Link */}
@@ -42,23 +28,14 @@ export default function AdminTopBar() {
         </Link>
       </div>
 
-      {/* Right: Notification & Profile */}
+      {/* Right: User Profile Indicator */}
       <div className="flex items-center gap-3 text-xs">
-        <div className="flex items-center gap-1 text-slate-300">
+        <div className="flex items-center gap-1.5 text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
           <User className="w-3.5 h-3.5 text-slate-400" />
-          <span className="hidden md:inline font-medium">Administrator</span>
+          <span className="font-medium">Administrator</span>
         </div>
-
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1 text-slate-400 hover:text-red-400 transition p-1"
-          title="Keluar"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Keluar</span>
-        </button>
       </div>
     </header>
   );
 }
-

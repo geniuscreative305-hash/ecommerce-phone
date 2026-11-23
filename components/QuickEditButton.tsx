@@ -1,32 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import { Edit3 } from 'lucide-react';
 
 export default function QuickEditButton() {
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    async function checkAdminSession() {
-      try {
-        const supabase = createClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          setIsAdmin(true);
-        }
-      } catch {
-        // Not logged in or supabase not configured yet
-      }
-    }
-    checkAdminSession();
-  }, []);
-
-  if (!isAdmin) return null;
-
   return (
     <div className="fixed bottom-6 right-6 z-40 print:hidden animate-bounce">
       <Link
@@ -42,4 +20,3 @@ export default function QuickEditButton() {
     </div>
   );
 }
-

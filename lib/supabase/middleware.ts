@@ -30,31 +30,8 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const isAccessingAdmin = request.nextUrl.pathname.startsWith('/admin');
-  const isLoginPage = request.nextUrl.pathname === '/admin/login';
-
-  if (isAccessingAdmin && !isLoginPage && !user) {
-    // If not authenticated, redirect to /admin/login
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin/login';
-    url.searchParams.set('redirectTo', request.nextUrl.pathname);
-    return NextResponse.redirect(url);
-  }
-
-  if (isLoginPage && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin';
-    return NextResponse.redirect(url);
-  }
+  // Refresh auth token silently if available, without blocking admin access
+  await supabase.auth.getUser();
 
   return supabaseResponse;
 }
-
