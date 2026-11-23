@@ -1,13 +1,22 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { PromoBanner } from '@/types';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, Smartphone } from 'lucide-react';
 
 interface PromoBannerProps {
   banner: PromoBanner;
 }
 
+const FALLBACK_PROMO_IMAGE = 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=800&auto=format&fit=crop';
+
 export default function PromoBannerSection({ banner }: PromoBannerProps) {
+  const [imgSrc, setImgSrc] = useState(
+    banner.promo_image || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?q=80&w=800&auto=format&fit=crop'
+  );
+  const [hasError, setHasError] = useState(false);
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="relative rounded-[28px] overflow-hidden bg-gradient-to-r from-[#0F172A] via-[#1A2640] to-[#0A101D] text-white p-8 sm:p-12 border border-slate-800 shadow-xl">
@@ -43,11 +52,25 @@ export default function PromoBannerSection({ banner }: PromoBannerProps) {
           {/* Right Showcase & Cursive Note */}
           <div className="md:col-span-5 relative flex items-center justify-center">
             <div className="relative w-full max-w-xs aspect-square flex items-center justify-center">
-              <img
-                src={banner.promo_image || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?q=80&w=800&auto=format&fit=crop'}
-                alt={banner.title}
-                className="w-full h-full object-contain filter drop-shadow-[0_15px_30px_rgba(0,102,255,0.3)] transform -rotate-3 hover:rotate-0 transition-transform duration-500"
-              />
+              {!hasError ? (
+                <img
+                  src={imgSrc}
+                  alt={banner.title || 'Promo Showcase'}
+                  onError={() => {
+                    if (imgSrc !== FALLBACK_PROMO_IMAGE) {
+                      setImgSrc(FALLBACK_PROMO_IMAGE);
+                    } else {
+                      setHasError(true);
+                    }
+                  }}
+                  className="w-full h-full object-contain filter drop-shadow-[0_15px_30px_rgba(0,102,255,0.3)] transform -rotate-3 hover:rotate-0 transition-transform duration-500"
+                />
+              ) : (
+                <div className="w-56 h-72 rounded-2xl border-2 border-cyan-500/30 bg-slate-800/80 flex flex-col items-center justify-center p-4 text-center space-y-2">
+                  <Smartphone className="w-8 h-8 text-cyan-400" />
+                  <div className="font-bold text-sm text-white">Promo Flagship Deals</div>
+                </div>
+              )}
               <div className="absolute -bottom-2 -right-2 text-right hidden sm:block">
                 <span className="font-serif italic text-cyan-300/80 text-sm tracking-wide block">
                   Better • Faster • Smarter
@@ -61,4 +84,3 @@ export default function PromoBannerSection({ banner }: PromoBannerProps) {
     </section>
   );
 }
-

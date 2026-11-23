@@ -30,7 +30,7 @@ export const DEFAULT_HERO_BANNER: HeroBanner = {
   cta_link: '/product/iphone-16-pro',
   badge_highlight: 'Garansi Resmi iBox / GDN 1 Tahun',
   hero_image:
-    'https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?q=80&w=1200&auto=format&fit=crop',
 };
 
 export const DEFAULT_PROMO_BANNER: PromoBanner = {

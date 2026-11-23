@@ -1,13 +1,22 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { HeroBanner } from '@/types';
-import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Sparkles, Smartphone } from 'lucide-react';
 
 interface HeroBannerProps {
   banner: HeroBanner;
 }
 
+const FALLBACK_HERO_IMAGE = 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?q=80&w=1000&auto=format&fit=crop';
+
 export default function HeroBannerSection({ banner }: HeroBannerProps) {
+  const [imgSrc, setImgSrc] = useState(
+    banner.hero_image || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?q=80&w=1000&auto=format&fit=crop'
+  );
+  const [hasError, setHasError] = useState(false);
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
       <div className="relative rounded-[28px] overflow-hidden bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0A101D] text-white shadow-2xl border border-slate-800">
@@ -62,11 +71,31 @@ export default function HeroBannerSection({ banner }: HeroBannerProps) {
           {/* Right Phone Showcase Column */}
           <div className="lg:col-span-5 relative h-full flex items-center justify-center p-6 sm:p-10 lg:p-8">
             <div className="relative w-full max-w-md aspect-square flex items-center justify-center">
-              <img
-                src={banner.hero_image || 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=1200&auto=format&fit=crop'}
-                alt={banner.headline}
-                className="w-full h-full object-contain filter drop-shadow-[0_20px_40px_rgba(0,102,255,0.35)] transform hover:scale-105 transition-transform duration-700"
-              />
+              {!hasError ? (
+                <img
+                  src={imgSrc}
+                  alt={banner.headline || 'Flagship Smartphone'}
+                  onError={() => {
+                    if (imgSrc !== FALLBACK_HERO_IMAGE) {
+                      setImgSrc(FALLBACK_HERO_IMAGE);
+                    } else {
+                      setHasError(true);
+                    }
+                  }}
+                  className="w-full h-full object-contain filter drop-shadow-[0_20px_40px_rgba(0,102,255,0.4)] transform hover:scale-105 transition-transform duration-700"
+                />
+              ) : (
+                /* Fallback Vector Graphic if external images are completely offline */
+                <div className="w-64 h-80 rounded-3xl border-4 border-blue-500/40 bg-gradient-to-b from-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 text-center space-y-3 shadow-2xl">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-600/30 text-blue-400 flex items-center justify-center">
+                    <Smartphone className="w-8 h-8" />
+                  </div>
+                  <div className="font-extrabold text-white text-lg">
+                    {banner.headline || 'Jaya Cell Flagship'}
+                  </div>
+                  <div className="text-xs text-blue-300">Garansi Resmi 100%</div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -74,4 +103,3 @@ export default function HeroBannerSection({ banner }: HeroBannerProps) {
     </section>
   );
 }
-

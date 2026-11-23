@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   DEFAULT_BRAND_IDENTITY,
   DEFAULT_HERO_BANNER,
@@ -10,14 +10,145 @@ import {
   DEFAULT_FOOTER_INFO,
 } from '@/lib/constants';
 import { saveSiteSettings } from './actions';
+import { createClient } from '@/lib/supabase/client';
 import {
   Settings,
   Image as ImageIcon,
   CheckCircle2,
-  RefreshCw,
-  Sparkles,
+  Upload,
+  Camera,
+  Loader2,
   ExternalLink,
 } from 'lucide-react';
+
+/**
+ * Reusable Device Image Uploader Component for CMS
+ * Supports uploading from Laptop explorer, HP gallery, or camera
+ */
+function DeviceImageUploader({
+  label,
+  value,
+  onChange,
+  folder = 'cms',
+}: {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+  folder?: string;
+}) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Data = event.target?.result as string;
+        // Immediate local display
+        onChange(base64Data);
+
+        // Upload to Supabase Storage
+        try {
+          const supabase = createClient();
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${folder}-${Date.now()}.${fileExt}`;
+          const filePath = `${folder}/${fileName}`;
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('jaya-cell-assets')
+            .upload(filePath, file, { upsert: true });
+
+          if (!uploadError && uploadData) {
+            const { data: publicUrlData } = supabase.storage
+              .from('jaya-cell-assets')
+              .getPublicUrl(filePath);
+
+            if (publicUrlData?.publicUrl) {
+              onChange(publicUrlData.publicUrl);
+            }
+          }
+        } catch {
+          // Keep base64Data
+        } finally {
+          setUploading(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+      <div className="flex items-center justify-between">
+        <label className="font-bold text-slate-800 text-xs">{label}</label>
+        {uploading && (
+          <span className="flex items-center gap-1 text-[11px] text-[#0066FF] font-semibold">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span>Mengupload...</span>
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        {/* Thumbnail Preview */}
+        <div className="w-20 h-20 rounded-xl border border-slate-300 bg-white p-1.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-inner">
+          {value ? (
+            <img src={value} alt="Preview" className="w-full h-full object-contain" />
+          ) : (
+            <ImageIcon className="w-7 h-7 text-slate-300" />
+          )}
+        </div>
+
+        {/* Buttons */}
+        <div className="flex-1 space-y-2 w-full">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0066FF] hover:bg-[#0052cc] text-white font-bold text-xs rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload dari Perangkat Ini</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl transition"
+            >
+              <Camera className="w-3.5 h-3.5 text-slate-500" />
+              <span>Galeri / Kamera HP</span>
+            </button>
+          </div>
+
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Atau tempel URL gambar (https://...)"
+            className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-[11px] font-mono text-slate-700"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminCMSPage() {
   // Brand Identity states
@@ -60,7 +191,7 @@ export default function AdminCMSPage() {
             <span>Tampilan & Konten Toko (CMS)</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Edit logo, banner promo, USP dan footer toko secara visual ala WordPress. Perubahan langsung aktif di storefront!
+            Edit logo, favicon, banner promo & USP. Semua gambar bisa di-upload langsung dari galeri laptop, HP, atau tablet!
           </p>
         </div>
 
@@ -83,7 +214,7 @@ export default function AdminCMSPage() {
               1. Brand Identity & Favicon Dinamis
             </h2>
             <p className="text-[11px] text-slate-400">
-              Mengubah nama toko, logo header, serta favicon browser tab secara real-time.
+              Ubah nama toko, upload logo baru, dan ganti icon favicon browser dari perangkat Anda.
             </p>
           </div>
           {savedSection === 'brand_identity' && (
@@ -119,33 +250,23 @@ export default function AdminCMSPage() {
             />
           </div>
 
-          <div className="space-y-1 sm:col-span-2">
-            <label className="font-bold text-slate-700">
-              Custom Logo Image URL (Kosongkan jika memakai vector default SVG emblem Jaya Cell)
-            </label>
-            <input
-              type="text"
-              placeholder="https://.../logo.png"
+          {/* Upload Logo from Device */}
+          <div className="sm:col-span-2">
+            <DeviceImageUploader
+              label="Upload Custom Logo Toko (Dari Laptop / HP / Tab)"
               value={brandIdentity.logo_url}
-              onChange={(e) =>
-                setBrandIdentity({ ...brandIdentity, logo_url: e.target.value })
-              }
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono"
+              onChange={(url) => setBrandIdentity({ ...brandIdentity, logo_url: url })}
+              folder="logos"
             />
           </div>
 
-          <div className="space-y-1 sm:col-span-2">
-            <label className="font-bold text-slate-700">
-              Dynamic Favicon URL (Browser Tab Icon)
-            </label>
-            <input
-              type="text"
-              placeholder="https://.../favicon.ico atau tinggalkan kosong untuk /icon.svg default"
+          {/* Upload Favicon from Device */}
+          <div className="sm:col-span-2">
+            <DeviceImageUploader
+              label="Upload Favicon Tab Browser (Icon Browser Tab)"
               value={brandIdentity.favicon_url}
-              onChange={(e) =>
-                setBrandIdentity({ ...brandIdentity, favicon_url: e.target.value })
-              }
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono"
+              onChange={(url) => setBrandIdentity({ ...brandIdentity, favicon_url: url })}
+              folder="favicons"
             />
           </div>
 
@@ -267,17 +388,13 @@ export default function AdminCMSPage() {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="font-bold text-slate-700">URL Gambar Smartphone Hero</label>
-            <input
-              type="text"
-              value={heroBanner.hero_image}
-              onChange={(e) =>
-                setHeroBanner({ ...heroBanner, hero_image: e.target.value })
-              }
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono"
-            />
-          </div>
+          {/* Upload Hero Banner from Device */}
+          <DeviceImageUploader
+            label="Upload Foto Smartphone Hero Banner (Dari Laptop / HP / Tab)"
+            value={heroBanner.hero_image}
+            onChange={(url) => setHeroBanner({ ...heroBanner, hero_image: url })}
+            folder="banners"
+          />
         </div>
 
         <div className="flex justify-end pt-2">
@@ -299,7 +416,7 @@ export default function AdminCMSPage() {
               3. Promo Banner (Limited Time Offer)
             </h2>
             <p className="text-[11px] text-slate-400">
-              Banner penawaran diskon di tengah beranda.
+              Banner penawaran diskon di tengah beranda toko.
             </p>
           </div>
           {savedSection === 'promo_banner' && (
@@ -333,15 +450,13 @@ export default function AdminCMSPage() {
             />
           </div>
 
-          <div className="space-y-1 sm:col-span-2">
-            <label className="font-bold text-slate-700">URL Gambar Showcase HP</label>
-            <input
-              type="text"
+          {/* Upload Promo Banner from Device */}
+          <div className="sm:col-span-2">
+            <DeviceImageUploader
+              label="Upload Foto Showcase Promo Banner (Dari Laptop / HP / Tab)"
               value={promoBanner.promo_image}
-              onChange={(e) =>
-                setPromoBanner({ ...promoBanner, promo_image: e.target.value })
-              }
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono"
+              onChange={(url) => setPromoBanner({ ...promoBanner, promo_image: url })}
+              folder="banners"
             />
           </div>
         </div>
@@ -422,4 +537,3 @@ export default function AdminCMSPage() {
     </div>
   );
 }
-
