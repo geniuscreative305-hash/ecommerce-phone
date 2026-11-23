@@ -186,4 +186,5 @@ ZONA BAWAH: MASTER CONTEXT & LOGIKA SISTEM TERKINI (LIVING CONTEXT)
 - **Log Pembaruan:**
   - Inisialisasi PRD Blueprint v1.0 untuk toko Jaya Cell E-Commerce, Counter POS, PWA & Admin CMS.
   - Revisi v1.1: Pengamanan ketat panel admin (/admin/*) via secure session cookie (anti-bocor), formulir login bersih tanpa pre-fill/auto-fill, serta implementasi fitur upload gambar produk langsung dari perangkat lokal (laptop, galeri HP, dan tablet) tersimpan langsung ke database & storage Jaya Cell.
+  - Revisi v1.2: Perbaikan rendering gambar hero banner beranda anti-pecah (dengan onError graceful fallback) dan penambahan tombol upload gambar langsung dari perangkat (laptop/galeri/kamera HP) pada seluruh slot gambar di panel CMS (/admin/cms) meliputi Logo Toko, Favicon, Hero Banner, dan Promo Banner.
 
