@@ -185,5 +185,5 @@ ZONA BAWAH: MASTER CONTEXT & LOGIKA SISTEM TERKINI (LIVING CONTEXT)
   - Kasir POS: Mode instan, status otomatis `delivered`, channel `offline_pos`, potong stok varian & buat IMEI warranty seketika.
 - **Log Pembaruan:**
   - Inisialisasi PRD Blueprint v1.0 untuk toko Jaya Cell E-Commerce, Counter POS, PWA & Admin CMS.
-  - Revisi v1.1: Membuka akses bebas langsung ke panel admin (/admin, /admin/pos, /admin/cms, dll.) tanpa kewajiban login user/pass di awal, serta sinkronisasi tombol floating Quick Edit di storefront.
+  - Revisi v1.1: Pengamanan ketat panel admin (/admin/*) via secure session cookie (anti-bocor), formulir login bersih tanpa pre-fill/auto-fill, serta implementasi fitur upload gambar produk langsung dari perangkat lokal (laptop, galeri HP, dan tablet) tersimpan langsung ke database & storage Jaya Cell.
 
