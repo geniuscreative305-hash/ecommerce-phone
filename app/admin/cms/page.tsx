@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   DEFAULT_BRAND_IDENTITY,
   DEFAULT_HERO_BANNER,
@@ -19,68 +19,103 @@ import {
   Camera,
   Loader2,
   ExternalLink,
+  AlertCircle,
 } from 'lucide-react';
+
+// Fixed deterministic filenames per slot → auto-overwrite, hemat storage
+const FIXED_FILENAMES: Record<string, string> = {
+  logos: 'logos/brand-logo',
+  favicons: 'favicons/brand-favicon',
+  banners: 'banners/hero-banner',
+  'banners-promo': 'banners/promo-banner',
+};
 
 /**
  * Reusable Device Image Uploader Component for CMS
  * Supports uploading from Laptop explorer, HP gallery, or camera
+ * Uses FIXED deterministic filename → upsert overwrites old file automatically
  */
 function DeviceImageUploader({
   label,
   value,
   onChange,
   folder = 'cms',
+  filenameKey,
 }: {
   label: string;
   value: string;
   onChange: (url: string) => void;
   folder?: string;
+  filenameKey?: string;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+    setUploadError(null);
+    setUploadSuccess(false);
+
+    // Show local preview immediately
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Data = event.target?.result as string;
+      onChange(base64Data); // local preview
+    };
+    reader.readAsDataURL(file);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64Data = event.target?.result as string;
-        // Immediate local display
-        onChange(base64Data);
+      const supabase = createClient();
 
-        // Upload to Supabase Storage
-        try {
-          const supabase = createClient();
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${folder}-${Date.now()}.${fileExt}`;
-          const filePath = `${folder}/${fileName}`;
+      // Determine fixed filename (no timestamp) → same path = overwrite old file
+      const key = filenameKey || folder;
+      const fixedBase = FIXED_FILENAMES[key] || `${folder}/main-image`;
+      // Preserve original extension
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const filePath = `${fixedBase}.${ext}`;
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('jaya-cell-assets')
-            .upload(filePath, file, { upsert: true });
+      // Upload with upsert:true → overwrites existing file at same path
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('jaya-cell-assets')
+        .upload(filePath, file, {
+          upsert: true,
+          cacheControl: '3600',
+          contentType: file.type,
+        });
 
-          if (!uploadError && uploadData) {
-            const { data: publicUrlData } = supabase.storage
-              .from('jaya-cell-assets')
-              .getPublicUrl(filePath);
+      if (uploadError) {
+        // Fallback: keep base64 preview but warn user
+        setUploadError(
+          `Upload ke Supabase Storage gagal: ${uploadError.message}. Gambar tersimpan sebagai data lokal sementara.`
+        );
+        setUploading(false);
+        return;
+      }
 
-            if (publicUrlData?.publicUrl) {
-              onChange(publicUrlData.publicUrl);
-            }
-          }
-        } catch {
-          // Keep base64Data
-        } finally {
-          setUploading(false);
+      if (uploadData) {
+        // Add cache-buster so browser reloads the overwritten image
+        const { data: publicUrlData } = supabase.storage
+          .from('jaya-cell-assets')
+          .getPublicUrl(filePath);
+
+        if (publicUrlData?.publicUrl) {
+          const cacheBustedUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+          onChange(cacheBustedUrl);
+          setUploadSuccess(true);
+          setTimeout(() => setUploadSuccess(false), 3000);
         }
-      };
-      reader.readAsDataURL(file);
-    } catch {
+      }
+    } catch (err: any) {
+      setUploadError(`Error: ${err.message}`);
+    } finally {
       setUploading(false);
+      // Reset input so same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -91,7 +126,13 @@ function DeviceImageUploader({
         {uploading && (
           <span className="flex items-center gap-1 text-[11px] text-[#0066FF] font-semibold">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span>Mengupload...</span>
+            <span>Mengupload & menimpa file lama...</span>
+          </span>
+        )}
+        {uploadSuccess && !uploading && (
+          <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Upload berhasil! File lama tertimpa.</span>
           </span>
         )}
       </div>
@@ -130,7 +171,8 @@ function DeviceImageUploader({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl transition"
+              disabled={uploading}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl transition disabled:opacity-50"
             >
               <Camera className="w-3.5 h-3.5 text-slate-500" />
               <span>Galeri / Kamera HP</span>
@@ -144,6 +186,13 @@ function DeviceImageUploader({
             placeholder="Atau tempel URL gambar (https://...)"
             className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-[11px] font-mono text-slate-700"
           />
+
+          {uploadError && (
+            <div className="flex items-start gap-1.5 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-2">
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <span>{uploadError}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -151,35 +200,76 @@ function DeviceImageUploader({
 }
 
 export default function AdminCMSPage() {
-  // Brand Identity states
+  // Brand Identity states — loaded from Supabase on mount
   const [brandIdentity, setBrandIdentity] = useState(DEFAULT_BRAND_IDENTITY);
-  // Hero states
   const [heroBanner, setHeroBanner] = useState(DEFAULT_HERO_BANNER);
-  // Promo states
   const [promoBanner, setPromoBanner] = useState(DEFAULT_PROMO_BANNER);
-  // USP states
   const [storeUSP, setStoreUSP] = useState(DEFAULT_STORE_USP);
-  // Newsletter states
   const [newsletter, setNewsletter] = useState(DEFAULT_NEWSLETTER);
-  // Footer states
   const [footerInfo, setFooterInfo] = useState(DEFAULT_FOOTER_INFO);
+  const [loadingData, setLoadingData] = useState(true);
 
   const [savingSection, setSavingSection] = useState<string | null>(null);
   const [savedSection, setSavedSection] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Load current settings from Supabase on page open
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.from('site_settings').select('*');
+
+        if (!error && data && data.length > 0) {
+          const map = new Map<string, any>();
+          data.forEach((row) => map.set(row.section_key, row.content_json));
+
+          if (map.has('brand_identity')) setBrandIdentity(map.get('brand_identity'));
+          if (map.has('hero_banner')) setHeroBanner(map.get('hero_banner'));
+          if (map.has('promo_banner')) setPromoBanner(map.get('promo_banner'));
+          if (map.has('store_usp')) setStoreUSP(map.get('store_usp'));
+          if (map.has('newsletter_banner')) setNewsletter(map.get('newsletter_banner'));
+          if (map.has('footer_info')) setFooterInfo(map.get('footer_info'));
+        }
+      } catch {
+        // Silently fall back to defaults
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const handleSave = async (sectionKey: string, payload: any) => {
     setSavingSection(sectionKey);
     setSavedSection(null);
+    setSaveError(null);
     try {
-      await saveSiteSettings(sectionKey, payload);
-      setSavedSection(sectionKey);
-      setTimeout(() => setSavedSection(null), 2500);
-    } catch {
-      // Ignored
+      const result = await saveSiteSettings(sectionKey, payload);
+      if (result.success) {
+        setSavedSection(sectionKey);
+        setTimeout(() => setSavedSection(null), 2500);
+      } else {
+        setSaveError(result.error || 'Gagal menyimpan ke database.');
+      }
+    } catch (err: any) {
+      setSaveError(err.message);
     } finally {
       setSavingSection(null);
     }
   };
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3 text-slate-500">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0066FF]" />
+          <span className="text-sm font-semibold">Memuat pengaturan toko dari database...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-4xl pb-16">
@@ -205,6 +295,14 @@ export default function AdminCMSPage() {
           <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
         </a>
       </div>
+
+      {/* Global save error */}
+      {saveError && (
+        <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span><strong>Gagal menyimpan:</strong> {saveError}</span>
+        </div>
+      )}
 
       {/* 1. Brand Identity & Dynamic Favicon */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-5 shadow-sm">
@@ -257,6 +355,7 @@ export default function AdminCMSPage() {
               value={brandIdentity.logo_url}
               onChange={(url) => setBrandIdentity({ ...brandIdentity, logo_url: url })}
               folder="logos"
+              filenameKey="logos"
             />
           </div>
 
@@ -267,6 +366,7 @@ export default function AdminCMSPage() {
               value={brandIdentity.favicon_url}
               onChange={(url) => setBrandIdentity({ ...brandIdentity, favicon_url: url })}
               folder="favicons"
+              filenameKey="favicons"
             />
           </div>
 
@@ -388,12 +488,13 @@ export default function AdminCMSPage() {
             </div>
           </div>
 
-          {/* Upload Hero Banner from Device */}
+          {/* Upload Hero Banner from Device - deterministic path: banners/hero-banner.{ext} */}
           <DeviceImageUploader
             label="Upload Foto Smartphone Hero Banner (Dari Laptop / HP / Tab)"
             value={heroBanner.hero_image}
             onChange={(url) => setHeroBanner({ ...heroBanner, hero_image: url })}
             folder="banners"
+            filenameKey="banners"
           />
         </div>
 
@@ -450,13 +551,14 @@ export default function AdminCMSPage() {
             />
           </div>
 
-          {/* Upload Promo Banner from Device */}
+          {/* Upload Promo Banner from Device - deterministic path: banners/promo-banner.{ext} */}
           <div className="sm:col-span-2">
             <DeviceImageUploader
               label="Upload Foto Showcase Promo Banner (Dari Laptop / HP / Tab)"
               value={promoBanner.promo_image}
               onChange={(url) => setPromoBanner({ ...promoBanner, promo_image: url })}
               folder="banners"
+              filenameKey="banners-promo"
             />
           </div>
         </div>
@@ -501,7 +603,7 @@ export default function AdminCMSPage() {
                   value={usp.title}
                   onChange={(e) => {
                     const updated = [...storeUSP];
-                    updated[idx].title = e.target.value;
+                    updated[idx] = { ...updated[idx], title: e.target.value };
                     setStoreUSP(updated);
                   }}
                   className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold"
@@ -514,7 +616,7 @@ export default function AdminCMSPage() {
                   value={usp.desc}
                   onChange={(e) => {
                     const updated = [...storeUSP];
-                    updated[idx].desc = e.target.value;
+                    updated[idx] = { ...updated[idx], desc: e.target.value };
                     setStoreUSP(updated);
                   }}
                   className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5"

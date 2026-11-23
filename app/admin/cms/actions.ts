@@ -6,6 +6,12 @@ import { createClient } from '@/lib/supabase/server';
 export async function saveSiteSettings(sectionKey: string, contentJson: any) {
   try {
     const supabase = createClient();
+
+    // Validate inputs
+    if (!sectionKey || contentJson === undefined || contentJson === null) {
+      return { success: false, error: 'Section key atau data kosong.' };
+    }
+
     const { error } = await supabase.from('site_settings').upsert(
       {
         section_key: sectionKey,
@@ -16,14 +22,20 @@ export async function saveSiteSettings(sectionKey: string, contentJson: any) {
     );
 
     if (error) {
-      console.warn('Supabase upsert warning:', error.message);
+      console.error('[saveSiteSettings] Supabase upsert error:', error.message, error.details);
+      return {
+        success: false,
+        error: `Database error: ${error.message}. Pastikan tabel site_settings sudah dibuat via schema.sql di Supabase SQL Editor.`,
+      };
     }
 
-    // Trigger instant storefront revalidation across entire layout
+    // Trigger full route re-render on homepage
     revalidatePath('/', 'layout');
+    revalidatePath('/');
+
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    console.error('[saveSiteSettings] unexpected error:', err);
+    return { success: false, error: err.message || 'Terjadi kesalahan tidak terduga.' };
   }
 }
-
