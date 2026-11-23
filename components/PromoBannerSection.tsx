@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PromoBanner } from '@/types';
 import { ArrowRight, Sparkles, Smartphone } from 'lucide-react';
@@ -13,9 +13,16 @@ const FALLBACK_PROMO_IMAGE = 'https://images.unsplash.com/photo-1510557880182-3d
 
 export default function PromoBannerSection({ banner }: PromoBannerProps) {
   const [imgSrc, setImgSrc] = useState(
-    banner.promo_image || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?q=80&w=800&auto=format&fit=crop'
+    banner.promo_image || FALLBACK_PROMO_IMAGE
   );
   const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (banner.promo_image) {
+      setImgSrc(banner.promo_image);
+      setHasError(false);
+    }
+  }, [banner.promo_image]);
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

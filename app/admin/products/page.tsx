@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { DEFAULT_PRODUCTS, DEFAULT_BRANDS } from '@/lib/constants';
 import { Product, ProductVariant } from '@/types';
 import { formatRupiah } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { saveProductAction, deleteProductAction } from './actions';
 import {
   Smartphone,
   Plus,
@@ -16,12 +17,36 @@ import {
   Camera,
   Image as ImageIcon,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Load products from Supabase on mount
+  const fetchProducts = async () => {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, variants:product_variants(*), brand:brands(*)')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        setProducts(data);
+      }
+    } catch {
+      // Keep DEFAULT_PRODUCTS fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   // Form states
   const [name, setName] = useState('');
@@ -139,100 +164,47 @@ export default function AdminProductsPage() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+    setActionError(null);
+
     const finalImages = [imageUrl || 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=600&auto=format&fit=crop'];
 
-    if (editingProduct) {
-      // Update local state
-      setProducts(
-        products.map((p) =>
-          p.id === editingProduct.id
-            ? {
-                ...p,
-                name,
-                slug,
-                brand_id: brandId,
-                discount_percent: discountPercent,
-                is_popular: isPopular,
-                is_best_deal: isBestDeal,
-                images: finalImages,
-                variants: variants.map((v) => ({ ...v, product_id: p.id })),
-              }
-            : p
-        )
-      );
-
-      // Save to Supabase PostgreSQL database
-      try {
-        const supabase = createClient();
-        await supabase
-          .from('products')
-          .update({
-            name,
-            slug,
-            brand_id: brandId,
-            discount_percent: discountPercent,
-            is_popular: isPopular,
-            is_best_deal: isBestDeal,
-            images: finalImages,
-          })
-          .eq('id', editingProduct.id);
-      } catch {
-        // Ignored
-      }
-    } else {
-      // Create new product
-      const newProdId = `p-${Date.now()}`;
-      const newProd: Product = {
-        id: newProdId,
-        brand_id: brandId,
+    try {
+      const result = await saveProductAction({
+        id: editingProduct ? editingProduct.id : undefined,
         name,
         slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        description: `${name} unit resmi garansi toko Jaya Cell.`,
+        brand_id: brandId,
         discount_percent: discountPercent,
-        specs_json: {
-          screen: '6.3 OLED 120Hz',
-          storage: variants[0]?.storage,
-          chipset: 'Flagship Core',
-          network: '5G Ready',
-        },
         is_popular: isPopular,
         is_best_deal: isBestDeal,
         images: finalImages,
-        created_at: new Date().toISOString(),
-        variants: variants.map((v) => ({ ...v, product_id: newProdId })),
-      };
-      setProducts([newProd, ...products]);
+        variants,
+      });
 
-      // Save to Supabase PostgreSQL database
-      try {
-        const supabase = createClient();
-        await supabase.from('products').insert({
-          id: newProd.id,
-          brand_id: newProd.brand_id,
-          name: newProd.name,
-          slug: newProd.slug,
-          description: newProd.description,
-          discount_percent: newProd.discount_percent,
-          specs_json: newProd.specs_json,
-          is_popular: newProd.is_popular,
-          is_best_deal: newProd.is_best_deal,
-          images: finalImages,
-        });
-      } catch {
-        // Ignored
+      if (!result.success) {
+        setActionError(result.error || 'Gagal menyimpan produk ke database.');
+        setIsSaving(false);
+        return;
       }
+
+      // Re-fetch products from database
+      await fetchProducts();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      setActionError(err.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setIsSaving(false);
     }
-    setIsModalOpen(false);
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (confirm('Yakin ingin menghapus produk smartphone ini?')) {
-      setProducts(products.filter((p) => p.id !== id));
-      try {
-        const supabase = createClient();
-        supabase.from('products').delete().eq('id', id);
-      } catch {
-        // Ignored
+      const result = await deleteProductAction(id);
+      if (result.success) {
+        await fetchProducts();
+      } else {
+        alert(`Gagal menghapus produk: ${result.error}`);
       }
     }
   };
@@ -627,19 +599,29 @@ export default function AdminProductsPage() {
                 </div>
               </div>
 
+              {actionError && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{actionError}</span>
+                </div>
+              )}
+
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold"
+                  disabled={isSaving}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white font-bold shadow-md shadow-blue-500/20"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white font-bold shadow-md shadow-blue-500/20 disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  Simpan Produk
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{isSaving ? 'Menyimpan...' : 'Simpan Produk'}</span>
                 </button>
               </div>
             </form>

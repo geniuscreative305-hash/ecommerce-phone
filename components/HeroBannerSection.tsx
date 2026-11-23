@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { HeroBanner } from '@/types';
 import { ArrowRight, ShieldCheck, Sparkles, Smartphone } from 'lucide-react';
@@ -13,9 +13,16 @@ const FALLBACK_HERO_IMAGE = 'https://images.unsplash.com/photo-1592750475338-74b
 
 export default function HeroBannerSection({ banner }: HeroBannerProps) {
   const [imgSrc, setImgSrc] = useState(
-    banner.hero_image || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?q=80&w=1000&auto=format&fit=crop'
+    banner.hero_image || FALLBACK_HERO_IMAGE
   );
   const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (banner.hero_image) {
+      setImgSrc(banner.hero_image);
+      setHasError(false);
+    }
+  }, [banner.hero_image]);
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">

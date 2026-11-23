@@ -4,7 +4,7 @@ import Footer from '@/components/Footer';
 import ShopClient from './ShopClient';
 import { getSiteSettings, getBrands, getProducts } from '@/lib/data';
 
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 export default async function ShopPage({
   searchParams,

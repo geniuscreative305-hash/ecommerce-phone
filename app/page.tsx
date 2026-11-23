@@ -11,7 +11,7 @@ import ProductCard from '@/components/ProductCard';
 import { getSiteSettings, getBrands, getProducts } from '@/lib/data';
 import { ArrowRight } from 'lucide-react';
 
-export const revalidate = 0; // Ensures fast dynamic updates from CMS
+export const dynamic = 'force-dynamic'; // Always server-render fresh from Supabase
 
 export default async function HomePage() {
   // Parallel data fetching for Zero-Delay standard

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { unstable_noStore as noStore } from 'next/cache';
 import {
   BrandIdentity,
   HeroBanner,
@@ -42,6 +43,8 @@ export async function getSiteSettings(): Promise<{
   newsletterBanner: NewsletterBanner;
   footerInfo: FooterInfo;
 }> {
+  // Force no-cache: always fetch fresh from Supabase on every request
+  noStore();
   try {
     const supabase = createClient();
     const { data, error } = await supabase.from('site_settings').select('*');
@@ -81,6 +84,7 @@ export async function getSiteSettings(): Promise<{
 }
 
 export async function getBrands(): Promise<Brand[]> {
+  noStore();
   try {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -99,6 +103,7 @@ export async function getBrands(): Promise<Brand[]> {
 }
 
 export async function getProducts(): Promise<Product[]> {
+  noStore();
   try {
     const supabase = createClient();
     const { data, error } = await supabase
