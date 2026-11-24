@@ -1,7 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getAdminPath } from '@/lib/admin-path';
 import { formatRupiah, formatDateIndo } from '@/lib/utils';
+import DashboardAlertBanners from '@/components/admin/DashboardAlertBanners';
 import {
   DollarSign,
   ShoppingBag,
@@ -23,6 +26,37 @@ export default async function AdminDashboardPage() {
   let activeWarrantiesCount = 48;
   let lowStockCount = 2;
   let recentOrders: any[] = [];
+  let failedLoginsCount = 0;
+  let outOfStockItems: Array<{ id: string; name: string; variant: string }> = [];
+
+  try {
+    const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    
+    // Fetch security alerts (failed login attempts)
+    const { data: failedLogs } = await supabaseAdmin
+      .from('admin_audit_logs')
+      .select('id')
+      .eq('action_type', 'FAILED_LOGIN_ALERT')
+      .gte('created_at', oneDayAgo);
+
+    if (failedLogs) {
+      failedLoginsCount = failedLogs.length;
+    }
+
+    // Fetch out-of-stock variants
+    const { data: oos } = await supabaseAdmin
+      .from('product_variants')
+      .select('id, color_name, storage, product:products(name)')
+      .lte('stock', 0);
+
+    if (oos && oos.length > 0) {
+      outOfStockItems = oos.map((item: any) => ({
+        id: item.id,
+        name: item.product?.name || 'Smartphone',
+        variant: `${item.color_name} ${item.storage}`,
+      }));
+    }
+  } catch {}
 
   try {
     const { data: orders } = await supabase
@@ -89,13 +123,19 @@ export default async function AdminDashboardPage() {
         </div>
 
         <Link
-          href="/admin/pos"
+          href={getAdminPath('/pos')}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#0066FF] hover:bg-[#0052cc] text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition active:scale-95"
         >
           <Store className="w-4 h-4" />
           <span>Buka Kasir POS Konter</span>
         </Link>
       </div>
+
+      {/* Security & Out-of-Stock Alert Banners */}
+      <DashboardAlertBanners
+        failedLoginsCount={failedLoginsCount}
+        outOfStockItems={outOfStockItems}
+      />
 
       {/* KPI 4-Card Responsive Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

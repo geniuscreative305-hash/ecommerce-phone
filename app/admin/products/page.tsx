@@ -102,7 +102,23 @@ export default function AdminProductsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Strict File Validation (2MB Limit + Safe MIME types only)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setActionError('Format foto produk tidak diizinkan. Hanya format JPG, PNG, dan WEBP yang didukung.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+    if (file.size > MAX_SIZE) {
+      setActionError(`Ukuran foto melebihi 2MB (ukuran file: ${(file.size / (1024 * 1024)).toFixed(2)}MB).`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setUploadingImage(true);
+    setActionError(null);
 
     try {
       // 1. Read Base64 for instant local display

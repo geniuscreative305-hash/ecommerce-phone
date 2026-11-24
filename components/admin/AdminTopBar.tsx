@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import BrandLogo from '@/components/BrandLogo';
 import { logoutAdmin } from '@/app/admin/login/actions';
+import { getAdminPath } from '@/lib/admin-path';
 import { ExternalLink, LogOut, User } from 'lucide-react';
 
 export default function AdminTopBar() {
@@ -11,7 +12,7 @@ export default function AdminTopBar() {
     <header className="h-12 bg-[#1D2327] text-white flex items-center justify-between px-4 sticky top-0 z-50 select-none shadow-md">
       {/* Left: WordPress Brand & Site Link */}
       <div className="flex items-center gap-4 text-xs font-semibold">
-        <Link href="/admin" className="flex items-center gap-2 text-white hover:text-blue-400 transition">
+        <Link href={getAdminPath()} className="flex items-center gap-2 text-white hover:text-blue-400 transition">
           <BrandLogo size="sm" variant="icon-only" />
           <span className="font-extrabold tracking-tight hidden sm:inline">Jaya Cell Admin CMS</span>
         </Link>

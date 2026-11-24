@@ -8,16 +8,25 @@ export async function updateSession(request: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const secretAdminPath = process.env.NEXT_PUBLIC_ADMIN_PATH || '/admin';
+  const hasCustomAdminPath = secretAdminPath !== '/admin';
 
+  const pathname = request.nextUrl.pathname;
+
+  // 1. Stealth Routing: Block automated scanner probing /admin or /wp-admin when custom path is active
+  if (hasCustomAdminPath) {
+    if (pathname.startsWith('/admin') || pathname.startsWith('/wp-admin')) {
+      return new NextResponse('404 Not Found', { status: 404 });
+    }
+  }
+
+  // 2. Check Auth Session
   let hasAuth = false;
-
-  // 1. Check custom secure admin session cookie
   const adminCookie = request.cookies.get('admin_session')?.value;
   if (adminCookie === 'authenticated') {
     hasAuth = true;
   }
 
-  // 2. Check Supabase Auth user if available
   if (!hasAuth && supabaseUrl && supabaseKey) {
     try {
       const supabase = createServerClient(supabaseUrl, supabaseKey, {
@@ -49,22 +58,30 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  const isAccessingAdmin = request.nextUrl.pathname.startsWith('/admin');
-  const isLoginPage = request.nextUrl.pathname === '/admin/login';
+  // Determine if requesting admin panel
+  const isTargetingAdmin = hasCustomAdminPath
+    ? pathname.startsWith(secretAdminPath)
+    : pathname.startsWith('/admin');
 
-  // STRICT ACCESS GUARD: Protect all /admin/* routes against unauthorized access
-  if (isAccessingAdmin && !isLoginPage && !hasAuth) {
+  const loginRoute = hasCustomAdminPath ? `${secretAdminPath}/login` : '/admin/login';
+  const isLoginPage = pathname === loginRoute || pathname === '/admin/login';
+
+  // 3. Strict 3-Gate Access Protection
+  if (isTargetingAdmin && !isLoginPage && !hasAuth) {
     const url = request.nextUrl.clone();
-    url.pathname = '/admin/login';
-    url.searchParams.set('redirectTo', request.nextUrl.pathname);
+    url.pathname = loginRoute;
+    url.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(url);
   }
 
-  // If already logged in and visiting /admin/login, redirect to /admin dashboard
-  if (isLoginPage && hasAuth) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin';
-    return NextResponse.redirect(url);
+  // 4. Internal Rewrite for Custom Secret Admin Path
+  if (hasCustomAdminPath && pathname.startsWith(secretAdminPath)) {
+    const subpath = pathname.substring(secretAdminPath.length) || '/';
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = `/admin${subpath === '/' ? '' : subpath}`;
+    return NextResponse.rewrite(rewriteUrl, {
+      headers: supabaseResponse.headers,
+    });
   }
 
   return supabaseResponse;

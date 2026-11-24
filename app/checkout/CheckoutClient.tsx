@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { formatRupiah, generateOrderNumber } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
+import { formatRupiah } from '@/lib/utils';
+import { placeOrderAction } from './actions';
 import {
   ShieldCheck,
   CreditCard,
@@ -16,6 +16,8 @@ import {
   ShoppingBag,
   Clock,
   MapPin,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
 export default function CheckoutClient() {
@@ -32,6 +34,18 @@ export default function CheckoutClient() {
   const [createdOrderNumber, setCreatedOrderNumber] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [idempotencyKey, setIdempotencyKey] = useState('');
+
+  // Generate unique UUID idempotencyKey once when checkout mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const generated =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      setIdempotencyKey(generated);
+    }
+  }, []);
 
   // Form states
   const [customerName, setCustomerName] = useState('');
@@ -43,65 +57,41 @@ export default function CheckoutClient() {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (items.length === 0) return;
+    if (items.length === 0 || isSubmitting) return;
 
     setIsSubmitting(true);
     setErrorMessage('');
 
     try {
-      const orderNumber = generateOrderNumber(Math.floor(Math.random() * 900) + 100);
-      const trackingLogs = [
-        {
-          status: 'placed',
-          timestamp: new Date().toISOString(),
-          description: 'Pesanan berhasil dibuat & menunggu konfirmasi pembayaran',
-          location: 'Jaya Cell Central',
-        },
-      ];
+      const result = await placeOrderAction({
+        idempotencyKey: idempotencyKey || `fallback-${Date.now()}`,
+        customerName,
+        customerPhone,
+        shippingAddress,
+        city,
+        postalCode,
+        paymentMethod,
+        tradeInInfo: tradeIn || null,
+        tradeInDiscount,
+        totalAmount: total,
+        items: items.map((i) => ({
+          productId: i.productId,
+          variantId: i.variantId,
+          productName: i.productName,
+          colorName: i.colorName,
+          storage: i.storage,
+          quantity: i.quantity,
+          price: i.price,
+        })),
+      });
 
-      const supabase = createClient();
-
-      // 1. Insert order
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          order_channel: 'online_web',
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          shipping_address: shippingAddress,
-          city: city,
-          postal_code: postalCode,
-          payment_method: paymentMethod,
-          trade_in_info: tradeIn || null,
-          trade_in_discount: tradeInDiscount,
-          total_amount: total,
-          status: 'placed',
-          tracking_logs: trackingLogs,
-        })
-        .select()
-        .single();
-
-      if (orderError) {
-        // Fallback for demo when Supabase credentials are placeholder
-        console.warn('Supabase order insert note:', orderError.message);
+      if (!result.success) {
+        setErrorMessage(result.error || 'Gagal memproses pesanan. Silakan coba lagi.');
+        setIsSubmitting(false);
+        return;
       }
 
-      // 2. Insert order items
-      if (orderData?.id) {
-        const orderItemsPayload = items.map((item) => ({
-          order_id: orderData.id,
-          product_id: item.productId,
-          variant_id: item.variantId,
-          product_name: item.productName,
-          variant_snapshot: `${item.colorName} - ${item.storage}`,
-          quantity: item.quantity,
-          price_at_purchase: item.price,
-        }));
-        await supabase.from('order_items').insert(orderItemsPayload);
-      }
-
-      setCreatedOrderNumber(orderNumber);
+      setCreatedOrderNumber(result.orderNumber || 'JC-ORD-SUCCESS');
       clearCart();
       setStep('success');
     } catch (err: any) {
@@ -435,13 +425,23 @@ export default function CheckoutClient() {
               </div>
             </div>
 
+            {errorMessage && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-xs text-red-700">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isSubmitting}
               className="w-full py-4 bg-[#0066FF] hover:bg-[#0052cc] text-white rounded-xl font-bold text-sm shadow-xl shadow-blue-500/25 transition active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
-                <span>Memproses Pesanan...</span>
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Memproses Pesanan...</span>
+                </>
               ) : (
                 <>
                   <span>Konfirmasi & Buat Pesanan</span>

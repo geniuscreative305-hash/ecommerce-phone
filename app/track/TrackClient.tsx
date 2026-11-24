@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { trackOrderAction, checkImeiAction } from './actions';
 import { Order, IMEIWarranty } from '@/types';
 import { formatRupiah, formatDateIndo } from '@/lib/utils';
 import {
@@ -61,63 +61,11 @@ export default function TrackClient({
     setOrderResult(null);
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*, items:order_items(*)')
-        .eq('order_number', q)
-        .single();
-
-      if (error || !data) {
-        // Fallback demo mock order if database is fresh
-        if (q.startsWith('JC-')) {
-          setOrderResult({
-            id: 'mock-1',
-            order_number: q,
-            order_channel: 'online_web',
-            customer_name: 'Pelanggan Jaya Cell',
-            customer_phone: '0812-3456-7890',
-            shipping_address: 'Jl. Sudirman No. 45',
-            city: 'Jakarta',
-            postal_code: '10220',
-            payment_method: 'QRIS Instan',
-            trade_in_info: null,
-            trade_in_discount: 0,
-            total_amount: 20999000,
-            status: 'processing',
-            tracking_logs: [
-              {
-                status: 'placed',
-                timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
-                description: 'Pesanan dibuat oleh pembeli',
-                location: 'Website Jaya Cell',
-              },
-              {
-                status: 'processing',
-                timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-                description: 'Pembayaran terverifikasi, unit sedang disiapkan & dicek QC',
-                location: 'Warehouse Jaya Cell Pusat',
-              },
-            ],
-            created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-            items: [
-              {
-                id: 'item-1',
-                order_id: 'mock-1',
-                product_id: 'p1',
-                variant_id: 'v1',
-                product_name: 'iPhone 16 Pro',
-                variant_snapshot: 'Titanium Black / 128GB',
-                quantity: 1,
-                price_at_purchase: 20999000,
-              },
-            ],
-          });
-        } else {
-          setOrderError('Nomor pesanan tidak ditemukan. Pastikan format: JC-YYYYMMDD-XXXX');
-        }
+      const res = await trackOrderAction(q);
+      if (res.success && res.order) {
+        setOrderResult(res.order as Order);
       } else {
-        setOrderResult(data);
+        setOrderError(res.error || 'Nomor pesanan tidak ditemukan.');
       }
     } catch {
       setOrderError('Gagal memeriksa pesanan. Silakan periksa kembali.');
@@ -135,33 +83,11 @@ export default function TrackClient({
     setImeiResult(null);
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('imei_warranties')
-        .select('*')
-        .eq('imei_number', q)
-        .single();
-
-      if (error || !data) {
-        // Fallback demo mock if query is 15-digit
-        if (q.length === 15) {
-          setImeiResult({
-            id: 'mock-imei-1',
-            imei_number: q,
-            order_number: 'JC-20261120-0001',
-            customer_name: 'Ahmad Pratama',
-            product_name: 'iPhone 16 Pro',
-            variant_info: 'Titanium Black / 128GB',
-            purchase_date: '2026-11-20',
-            warranty_end_date: '2027-11-20',
-            warranty_type: 'Garansi Resmi',
-            status: 'active',
-          });
-        } else {
-          setImeiError('Nomor IMEI tidak terdaftar atau belum sesuai (wajib 15 digit angka).');
-        }
+      const res = await checkImeiAction(q);
+      if (res.success && res.warranty) {
+        setImeiResult(res.warranty as IMEIWarranty);
       } else {
-        setImeiResult(data);
+        setImeiError(res.error || 'Nomor IMEI tidak terdaftar.');
       }
     } catch {
       setImeiError('Gagal memverifikasi IMEI.');

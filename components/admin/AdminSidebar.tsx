@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getAdminPath } from '@/lib/admin-path';
 import {
   LayoutDashboard,
   Store,
@@ -11,7 +12,7 @@ import {
   ShieldCheck,
   ArrowUpDown,
   Settings,
-  ChevronRight,
+  FileText,
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -19,18 +20,19 @@ interface AdminSidebarProps {
   setMobileOpen: (open: boolean) => void;
 }
 
-const MENU_ITEMS = [
-  { href: '/admin', label: 'Dashboard KPI', icon: LayoutDashboard },
-  { href: '/admin/pos', label: 'Kasir / POS Konter', icon: Store, badge: 'POS' },
-  { href: '/admin/products', label: 'Produk & Varian', icon: Smartphone },
-  { href: '/admin/orders', label: 'Pesanan Masuk', icon: ShoppingBag },
-  { href: '/admin/imei', label: 'Data IMEI & Garansi', icon: ShieldCheck },
-  { href: '/admin/trade-in', label: 'Aturan Tukar Tambah', icon: ArrowUpDown },
-  { href: '/admin/cms', label: 'Tampilan & Konten (CMS)', icon: Settings },
-];
-
 export default function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebarProps) {
   const pathname = usePathname();
+
+  const MENU_ITEMS = [
+    { href: getAdminPath(), subpath: '', label: 'Dashboard KPI', icon: LayoutDashboard },
+    { href: getAdminPath('/pos'), subpath: '/pos', label: 'Kasir / POS Konter', icon: Store, badge: 'POS' },
+    { href: getAdminPath('/products'), subpath: '/products', label: 'Produk & Varian', icon: Smartphone },
+    { href: getAdminPath('/orders'), subpath: '/orders', label: 'Pesanan Masuk', icon: ShoppingBag },
+    { href: getAdminPath('/imei'), subpath: '/imei', label: 'Data IMEI & Garansi', icon: ShieldCheck },
+    { href: getAdminPath('/trade-in'), subpath: '/trade-in', label: 'Aturan Tukar Tambah', icon: ArrowUpDown },
+    { href: getAdminPath('/cms'), subpath: '/cms', label: 'Tampilan & Konten (CMS)', icon: Settings },
+    { href: getAdminPath('/audit-logs'), subpath: '/audit-logs', label: 'Audit Log & Backup', icon: FileText, badge: 'SEC' },
+  ];
 
   return (
     <>
@@ -55,9 +57,9 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebar
           {MENU_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive =
-              item.href === '/admin'
-                ? pathname === '/admin'
-                : pathname.startsWith(item.href);
+              item.subpath === ''
+                ? pathname === item.href || pathname === '/admin'
+                : pathname.includes(item.subpath);
 
             return (
               <Link
@@ -77,7 +79,7 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebar
                 {item.badge && (
                   <span
                     className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-emerald-500 text-white'
+                      isActive ? 'bg-white/20 text-white' : item.badge === 'SEC' ? 'bg-indigo-500 text-white' : 'bg-emerald-500 text-white'
                     }`}
                   >
                     {item.badge}
@@ -90,12 +92,11 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebar
 
         {/* Quick System Info Bottom Box */}
         <div className="p-4 mt-6 border-t border-slate-700/60 text-[11px] text-slate-400 space-y-1">
-          <div className="font-bold text-slate-300">Jaya Cell Engine v1.0</div>
-          <div>Next.js 14 + Supabase</div>
-          <div className="text-emerald-400">● Status RLS Aktif</div>
+          <div className="font-bold text-slate-300">Jaya Cell Enterprise v2.0</div>
+          <div>Next.js 14 + Hardened Supabase</div>
+          <div className="text-emerald-400">● 3-Gate Protection Active</div>
         </div>
       </aside>
     </>
   );
 }
-

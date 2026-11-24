@@ -187,4 +187,12 @@ ZONA BAWAH: MASTER CONTEXT & LOGIKA SISTEM TERKINI (LIVING CONTEXT)
   - Inisialisasi PRD Blueprint v1.0 untuk toko Jaya Cell E-Commerce, Counter POS, PWA & Admin CMS.
   - Revisi v1.1: Pengamanan ketat panel admin (/admin/*) via secure session cookie (anti-bocor), formulir login bersih tanpa pre-fill/auto-fill, serta implementasi fitur upload gambar produk langsung dari perangkat lokal (laptop, galeri HP, dan tablet) tersimpan langsung ke database & storage Jaya Cell.
   - Revisi v1.2: Perbaikan rendering gambar hero banner beranda anti-pecah (dengan onError graceful fallback) dan penambahan tombol upload gambar langsung dari perangkat (laptop/galeri/kamera HP) pada seluruh slot gambar di panel CMS (/admin/cms) meliputi Logo Toko, Favicon, Hero Banner, dan Promo Banner.
+  - Revisi v2.0 (Complete Gold Edition - Enterprise Hardening):
+    * Stok Atomik & Anti-Double Checkout: Kolom `idempotency_key` di tabel `orders` & client checkout, transaksi PostgreSQL RPC `create_order_atomic` dengan row-level locking `FOR UPDATE` pada `product_variants`.
+    * Stealth Routing Admin: Dukungan rute admin rahasia dinamis (`NEXT_PUBLIC_ADMIN_PATH`, misal `/jc-control-99x`) dengan proteksi 404 pada rute `/admin` standar.
+    * 3-Gate Admin Protection: Pengecekan aktif sesi auth, verifikasi tabel `admin_whitelist`, dan tantangan verifikasi TOTP MFA (Authenticator App).
+    * Audit Logging & Security Alerts: Tabel `admin_audit_logs`, auto-logging setiap mutasi produk, stok, CMS, dan deteksi lonjakan login gagal (`FAILED_LOGIN_ALERT`) dengan banner alert di dashboard admin.
+    * 1-Click Backup Utility: Ekspor data mandiri JSON Full Snapshot dan CSV (`products`, `orders`, `imei_warranties`, `site_settings`) di halaman `/admin/audit-logs`.
+    * Rate Limiting & Customer Data Masking: In-memory sliding window rate limiter di `lib/rate-limit.ts` (Login: 5/15m, Checkout: 5/1m, Tracking: 15/1m) dan sensor data pribadi pelanggan pada pelacakan pesanan & cek IMEI.
+    * HTTP Security Headers & 2MB Image Validation: Penerapan CSP, X-Frame-Options: DENY, nosniff, dan batas upload gambar maksimal 2MB (JPG, PNG, WEBP) anti-malware.
 

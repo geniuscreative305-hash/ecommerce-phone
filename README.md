@@ -59,18 +59,24 @@ Lalu masukkan kredensial Supabase Anda:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-secret-key
+NEXT_PUBLIC_ADMIN_PATH=/jc-control-99x # Jalur URL admin rahasia (stealth routing)
 ```
 
-### 2. Eksekusi Skema Database & Seed Data di Supabase
+### 2. Eksekusi Skema Database & Hardening Keamanan di Supabase
 1. Buka dashboard Supabase Anda -> **SQL Editor**.
-2. Buka berkas [supabase/schema.sql](supabase/schema.sql).
-3. Salin seluruh kueri SQL dan klik tombol **Run**.
-4. Skema ini otomatis membuat:
-   - 8 tabel idempoten (`site_settings`, `brands`, `products`, `product_variants`, `trade_in_rules`, `orders`, `order_items`, `imei_warranties`)
-   - Indeks database untuk query super cepat
-   - Kebijakan Row Level Security (RLS)
-   - Public Storage Bucket `jaya-cell-assets`
-   - Data seed lengkap smartphone (iPhone 16 Pro, Galaxy S24, Pixel 9, OnePlus 12, dll.)
+2. Buka berkas [supabase/schema.sql](supabase/schema.sql), salin kueri dan klik **Run**.
+3. Buka berkas [supabase/security_hardening.sql](supabase/security_hardening.sql), salin kueri dan klik **Run** untuk mengaktifkan:
+   - Kolom `idempotency_key` di tabel `orders`
+   - Fungsi atomik PostgreSQL `create_order_atomic(...)` (Anti-Double Checkout & `FOR UPDATE` stock locking)
+   - Tabel `admin_whitelist` dan `admin_audit_logs`
+   - Kebijakan upload Supabase Storage 2MB strict (JPG, PNG, WEBP)
+4. Daftarkan email admin pemilik toko ke `admin_whitelist`:
+```sql
+INSERT INTO public.admin_whitelist (user_id, email, role, is_active)
+VALUES (gen_random_uuid(), 'admin@jayacell.id', 'super_admin', true)
+ON CONFLICT (email) DO UPDATE SET is_active = true;
+```
 
 ### 3. Jalankan Aplikasi di Lingkungan Lokal
 ```bash
