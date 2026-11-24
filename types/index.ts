@@ -46,6 +46,14 @@ export interface FooterInfo {
   copyright: string;
 }
 
+export interface PaymentSettings {
+  qris_image_url: string;
+  bank_name: string;
+  bank_account_number: string;
+  bank_account_holder: string;
+  payment_instructions?: string;
+}
+
 export interface SiteSetting<T = any> {
   id: number;
   section_key: string;

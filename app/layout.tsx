@@ -4,7 +4,6 @@ import './globals.css';
 import { CartProvider } from '@/context/CartContext';
 import { UserAuthProvider } from '@/context/UserAuthContext';
 import CartSlideOver from '@/components/CartSlideOver';
-import QuickEditButton from '@/components/QuickEditButton';
 import AuthModal from '@/components/auth/AuthModal';
 import AiBrandAssistantModal from '@/components/ai/AiBrandAssistantModal';
 import { getSiteSettings } from '@/lib/data';
@@ -68,7 +67,6 @@ export default function RootLayout({
           <CartProvider>
             {children}
             <CartSlideOver />
-            <QuickEditButton />
             <AuthModal />
             <AiBrandAssistantModal />
           </CartProvider>

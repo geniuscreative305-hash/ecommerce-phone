@@ -5,6 +5,7 @@ import {
   StoreUSPItem,
   NewsletterBanner,
   FooterInfo,
+  PaymentSettings,
   Brand,
   Product,
   TradeInRule,
@@ -19,6 +20,14 @@ export const DEFAULT_BRAND_IDENTITY: BrandIdentity = {
   email: 'halo@jayacell.id',
   address: 'Jl. Gajah Mada No. 88, Menteng, Jakarta Pusat',
   instagram: 'jayacell.id',
+};
+
+export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
+  qris_image_url: '',
+  bank_name: 'BCA (Bank Central Asia)',
+  bank_account_number: '8830-1234-5678',
+  bank_account_holder: 'JAYA CELL INDONESIA',
+  payment_instructions: 'Silakan transfer tepat sesuai total nominal dan konfirmasi via WhatsApp atau cek status pesanan berkala.',
 };
 
 export const DEFAULT_HERO_BANNER: HeroBanner = {

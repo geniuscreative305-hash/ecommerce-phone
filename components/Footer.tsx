@@ -85,11 +85,6 @@ export default function Footer({ footerInfo, brandIdentity }: FooterProps) {
                   Cek Garansi IMEI 15-Digit
                 </Link>
               </li>
-              <li>
-                <Link href="/admin/login" className="hover:text-blue-400 text-xs transition">
-                  Portal Login Admin / Kasir POS 🔒
-                </Link>
-              </li>
             </ul>
           </div>
 

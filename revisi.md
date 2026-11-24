@@ -1,50 +1,46 @@
-# LAPORAN IMPLEMENTASI REVISI: TRIPLE FEATURE UPGRADE (JAYA CELL)
+# LAPORAN PENYELESAIAN REVISI v2.1: KEAMANAN STEALTH, QRIS BANK RESMI & POPUP TRACKING
 ================================================================================
 STATUS: SELESAI & TERVERIFIKASI (COMPLETED & VERIFIED)
-TANGGAL: 24 November 2026
+TANGGAL: 25 November 2026
+COMMIT: origin/main
 ================================================================================
 
-## 1. RINGKASAN FITUR YANG DIIMPLEMENTASIKAN
+## 1. RINGKASAN IMPLEMENTASI
 
-### FITUR 1: Auto-Brand Vector Logo (Anti-Pecah & Zero-Maintenance)
+### REVISI 1: Stealth Mode Storefront (Bersihkan Jejak Admin)
 - **Status:** SELESAI
-- **Komponen:** `components/BrandVectorIcon.tsx` & `components/BrandsSection.tsx`
-- **Hasil:**
-  - Menghilangkan ketergantungan hotlink eksternal (Wikimedia yang terkena 403 Forbidden).
-  - Mengintegrasikan logo vektor resmi SVG bawaan (Apple, Samsung, Google, OnePlus, Xiaomi, realme, Oppo, Vivo, dll.).
-  - Logo tampil tajam, anti-pecah, dan memuat 0ms secara otomatis sesuai nama brand di katalog.
+- **Komponen Diubah:**
+  - `app/layout.tsx`: Menghapus komponen `<QuickEditButton />`. Tombol melayang *"Edit Halaman Ini"* di pojok kanan bawah telah dihilangkan total.
+  - `components/Footer.tsx`: Menghapus baris tautan navigasi *"Portal Login Admin / Kasir POS 🔒"*.
+- **Hasil:** Storefront publik 100% steril dari elemen admin. Akses admin hanya bisa diakses melalui URL rahasia (`NEXT_PUBLIC_ADMIN_PATH`).
 
 ---
 
-### FITUR 2: Login Publik Bertahap (Lazy Auth: Keranjang & Checkout)
+### REVISI 2: Upload Gambar QR Code QRIS Bank Resmi Terproteksi (Anti-Hack)
 - **Status:** SELESAI
-- **Komponen:**
-  - `context/UserAuthContext.tsx`
-  - `components/auth/AuthModal.tsx`
-  - `components/Navbar.tsx`
-  - `components/ProductCard.tsx`
-  - `app/product/[slug]/ProductDetailClient.tsx`
-  - `components/CartSlideOver.tsx`
-  - `app/checkout/CheckoutClient.tsx`
-  - `app/layout.tsx`
-- **Hasil:**
-  - Pengunjung publik bebas menjelajahi beranda dan katalog tanpa login wall.
-  - Modal login otomatis muncul hanya ketika pengguna hendak **"Tambah ke Keranjang"** atau **"Lanjut ke Checkout / Pembayaran"**.
-  - Mendukung login cepat **Google One-Click OAuth** dan input manual **Email & Kata Sandi** (Login & Daftar).
-  - Privasi data pengguna terlindungi dengan enkripsi Supabase Auth dan audit RLS ketat.
+- **Komponen Diubah:**
+  - `app/admin/cms/page.tsx`: Menambahkan section khusus **"Metode Pembayaran & QRIS Bank Resmi"** dengan uploader terproteksi (`DeviceImageUploader`), sanitasi MIME (`JPG`, `PNG`, `WEBP`), batasan ketat 2MB, dan penyimpanan path deterministik `qris/official-bank-qris`.
+  - Formulir rekening transfer bank resmi (Nama Bank, Nomor Rekening, Atas Nama, dan Petunjuk Transfer).
+  - `types/index.ts`, `lib/constants.ts`, `lib/data.ts`: Mendefinisikan antarmuka `PaymentSettings` terintegrasi.
+- **Hasil:** Pemilik toko dapat mengunggah QRIS asli dari bank mitra secara aman. Data disimpan terenkripsi di Supabase Storage dan hanya dapat dimodifikasi oleh Super Admin terverifikasi.
 
 ---
 
-### FITUR 3: AI Brand Assistant Jaya Cell (Gemini API Powered)
+### REVISI 3: Modal Popup Notifikasi Pembayaran Berhasil & Stepper Tracking Pesanan
 - **Status:** SELESAI
-- **Komponen:**
-  - `app/api/ai-assistant/actions.ts`: Server Action aman, sliding-window rate limit (10 req/menit per IP), integrasi model `gemini-2.5-flash`, serta fallback smart knowledge offline.
-  - `components/ai/AiBrandAssistantModal.tsx`: Floating launcher button di pojok kiri bawah *"✨ Tanya AI Jaya Cell"*, chat drawer interaktif, chip rekomendasi instan, dan rendering markdown rapi.
-  - `app/layout.tsx`: Terpasang global di seluruh storefront.
-  - `.env.example` & `.env.local.example`: Dokumentasi variabel `GEMINI_API_KEY`.
+- **Komponen Diubah:**
+  - `app/checkout/CheckoutClient.tsx` & `app/checkout/page.tsx`:
+    - Saat metode **QRIS Instan** dipilih: Menampilkan gambar QRIS resmi bank toko, tombol unduh QR, dan panduan scan e-wallet / mobile banking.
+    - Saat metode **Transfer Bank** dipilih: Menampilkan info rekening resmi dengan tombol salin cepat.
+    - Saat checkout berhasil: Menampilkan **Celebration Pop-up Transaksi Berhasil** lengkap dengan animasi centang, nomor pesanan unik, total bayar, serta **Stepper Tracking Status Pesanan Realtime**:
+      1. 🟢 Pesanan Dibuat & Pembayaran Dikonfirmasi (Selesai)
+      2. 📦 Sedang Dikemas (Cek Fisik IMEI & Segel Garansi) (Sedang Berjalan)
+      3. 🚚 Dalam Pengiriman (Kurir)
+      4. 🏠 Pesanan Selesai (Diterima Pembeli)
+    - Tombol aksi: **Lacak Pesanan Lengkap**, **Konfirmasi via WhatsApp** (format teks otomatis), dan **Kembali ke Beranda**.
 
 ---
 
-## 2. VERIFIKASI BUILD
-- Kompilasi `npm run build` sukses 100% tanpa error TypeScript maupun linting.
+## 2. HASIL VERIFIKASI BUILD
+- Perintah `npm run build` sukses 100% tanpa error TypeScript (0 error pada 19 route Next.js).
 - Desain UI/UX Storefront, POS Kasir Konter, dan Admin CMS tetap terjaga utuh tanpa regresi.

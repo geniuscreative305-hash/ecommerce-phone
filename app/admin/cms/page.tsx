@@ -8,6 +8,7 @@ import {
   DEFAULT_STORE_USP,
   DEFAULT_NEWSLETTER,
   DEFAULT_FOOTER_INFO,
+  DEFAULT_PAYMENT_SETTINGS,
 } from '@/lib/constants';
 import { saveSiteSettings } from './actions';
 import { createClient } from '@/lib/supabase/client';
@@ -20,6 +21,9 @@ import {
   Loader2,
   ExternalLink,
   AlertCircle,
+  CreditCard,
+  QrCode,
+  ShieldCheck,
 } from 'lucide-react';
 
 // Fixed deterministic filenames per slot → auto-overwrite, hemat storage
@@ -28,6 +32,7 @@ const FIXED_FILENAMES: Record<string, string> = {
   favicons: 'favicons/brand-favicon',
   banners: 'banners/hero-banner',
   'banners-promo': 'banners/promo-banner',
+  qris: 'qris/official-bank-qris',
 };
 
 /**
@@ -224,6 +229,7 @@ export default function AdminCMSPage() {
   const [storeUSP, setStoreUSP] = useState(DEFAULT_STORE_USP);
   const [newsletter, setNewsletter] = useState(DEFAULT_NEWSLETTER);
   const [footerInfo, setFooterInfo] = useState(DEFAULT_FOOTER_INFO);
+  const [paymentSettings, setPaymentSettings] = useState(DEFAULT_PAYMENT_SETTINGS);
   const [loadingData, setLoadingData] = useState(true);
 
   const [savingSection, setSavingSection] = useState<string | null>(null);
@@ -247,6 +253,7 @@ export default function AdminCMSPage() {
           if (map.has('store_usp')) setStoreUSP(map.get('store_usp'));
           if (map.has('newsletter_banner')) setNewsletter(map.get('newsletter_banner'));
           if (map.has('footer_info')) setFooterInfo(map.get('footer_info'));
+          if (map.has('payment_settings')) setPaymentSettings(map.get('payment_settings'));
         }
       } catch {
         // Silently fall back to defaults
@@ -650,6 +657,135 @@ export default function AdminCMSPage() {
             className="px-5 py-2.5 bg-[#0066FF] hover:bg-[#0052cc] text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50"
           >
             {savingSection === 'store_usp' ? 'Menyimpan...' : 'Simpan 4-USP Toko'}
+          </button>
+        </div>
+      </div>
+
+      {/* SECTION 7: QRIS & BANK TRANSFER PAYMENT SETTINGS */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6 shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0066FF] flex items-center justify-center">
+              <QrCode className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-slate-900 text-sm">
+                  Metode Pembayaran & QRIS Bank Resmi
+                </h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Super Secure
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Upload QR Code QRIS resmi dari bank mitra dan kelola rekening transfer untuk pelanggan toko.
+              </p>
+            </div>
+          </div>
+          {savedSection === 'payment_settings' && (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Tersimpan!</span>
+            </div>
+          )}
+        </div>
+
+        {/* Security Alert Note */}
+        <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-start gap-2.5 text-xs text-blue-900 leading-relaxed">
+          <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold">Keamanan Terproteksi Tingkat Server:</span> Gambar QRIS disimpan secara terenkripsi di Supabase Storage dan hanya dapat diubah oleh Super Admin yang terverifikasi di daftar whitelist. Setiap perubahan tercatat otomatis pada Audit Log.
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* QRIS Official Image Uploader */}
+          <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <h4 className="font-bold text-xs text-slate-800 flex items-center gap-2">
+              <QrCode className="w-4 h-4 text-blue-600" />
+              Upload QR Code QRIS Bank Resmi
+            </h4>
+            <p className="text-[11px] text-slate-500">
+              Gunakan QRIS Statis/Dinamis resmi yang diterbitkan oleh Bank (BCA Merchant, Mandiri, BRI, dll). Format: JPG, PNG, WEBP (Maksimal 2MB).
+            </p>
+
+            <DeviceImageUploader
+              label="Foto / Gambar QRIS Resmi Bank"
+              value={paymentSettings.qris_image_url}
+              onChange={(url) => setPaymentSettings({ ...paymentSettings, qris_image_url: url })}
+              folder="qris"
+              filenameKey="qris"
+            />
+          </div>
+
+          {/* Bank Transfer Details Form */}
+          <div className="space-y-3.5 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <h4 className="font-bold text-xs text-slate-800 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-blue-600" />
+              Informasi Rekening Transfer Bank
+            </h4>
+
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 text-xs">Nama Bank</label>
+              <input
+                type="text"
+                value={paymentSettings.bank_name}
+                onChange={(e) =>
+                  setPaymentSettings({ ...paymentSettings, bank_name: e.target.value })
+                }
+                placeholder="Contoh: BCA (Bank Central Asia)"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 text-xs">Nomor Rekening</label>
+              <input
+                type="text"
+                value={paymentSettings.bank_account_number}
+                onChange={(e) =>
+                  setPaymentSettings({ ...paymentSettings, bank_account_number: e.target.value })
+                }
+                placeholder="Contoh: 8830-1234-5678"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 text-xs">Atas Nama Rekening</label>
+              <input
+                type="text"
+                value={paymentSettings.bank_account_holder}
+                onChange={(e) =>
+                  setPaymentSettings({ ...paymentSettings, bank_account_holder: e.target.value })
+                }
+                placeholder="Contoh: JAYA CELL INDONESIA"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 text-xs">Petunjuk Pembayaran</label>
+              <textarea
+                rows={2}
+                value={paymentSettings.payment_instructions || ''}
+                onChange={(e) =>
+                  setPaymentSettings({ ...paymentSettings, payment_instructions: e.target.value })
+                }
+                placeholder="Petunjuk singkat untuk pelanggan saat transfer..."
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <button
+            onClick={() => handleSave('payment_settings', paymentSettings)}
+            disabled={savingSection === 'payment_settings'}
+            className="px-5 py-2.5 bg-[#0066FF] hover:bg-[#0052cc] text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50"
+          >
+            {savingSection === 'payment_settings' ? 'Menyimpan...' : 'Simpan Pengaturan Pembayaran & QRIS'}
           </button>
         </div>
       </div>

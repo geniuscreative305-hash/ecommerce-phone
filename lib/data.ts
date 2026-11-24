@@ -7,6 +7,7 @@ import {
   StoreUSPItem,
   NewsletterBanner,
   FooterInfo,
+  PaymentSettings,
   Brand,
   Product,
   TradeInRule,
@@ -18,6 +19,7 @@ import {
   DEFAULT_STORE_USP,
   DEFAULT_NEWSLETTER,
   DEFAULT_FOOTER_INFO,
+  DEFAULT_PAYMENT_SETTINGS,
   DEFAULT_BRANDS,
   DEFAULT_PRODUCTS,
   DEFAULT_TRADE_IN_RULES,
@@ -42,6 +44,7 @@ export async function getSiteSettings(): Promise<{
   storeUSP: StoreUSPItem[];
   newsletterBanner: NewsletterBanner;
   footerInfo: FooterInfo;
+  paymentSettings: PaymentSettings;
 }> {
   // Force no-cache: always fetch fresh from Supabase on every request
   noStore();
@@ -57,6 +60,7 @@ export async function getSiteSettings(): Promise<{
         storeUSP: DEFAULT_STORE_USP,
         newsletterBanner: DEFAULT_NEWSLETTER,
         footerInfo: DEFAULT_FOOTER_INFO,
+        paymentSettings: DEFAULT_PAYMENT_SETTINGS,
       };
     }
 
@@ -70,6 +74,7 @@ export async function getSiteSettings(): Promise<{
       storeUSP: map.get('store_usp') || DEFAULT_STORE_USP,
       newsletterBanner: map.get('newsletter_banner') || DEFAULT_NEWSLETTER,
       footerInfo: map.get('footer_info') || DEFAULT_FOOTER_INFO,
+      paymentSettings: map.get('payment_settings') || DEFAULT_PAYMENT_SETTINGS,
     };
   } catch {
     return {
@@ -79,6 +84,7 @@ export async function getSiteSettings(): Promise<{
       storeUSP: DEFAULT_STORE_USP,
       newsletterBanner: DEFAULT_NEWSLETTER,
       footerInfo: DEFAULT_FOOTER_INFO,
+      paymentSettings: DEFAULT_PAYMENT_SETTINGS,
     };
   }
 }
