@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
+import { useUserAuth } from '@/context/UserAuthContext';
 import { formatRupiah } from '@/lib/utils';
 import { placeOrderAction } from './actions';
 import {
@@ -29,6 +30,7 @@ export default function CheckoutClient() {
     total,
     clearCart,
   } = useCart();
+  const { user, openAuthModal } = useUserAuth();
 
   const [step, setStep] = useState<'form' | 'success'>('form');
   const [createdOrderNumber, setCreatedOrderNumber] = useState<string>('');
@@ -48,16 +50,27 @@ export default function CheckoutClient() {
   }, []);
 
   // Form states
-  const [customerName, setCustomerName] = useState('');
+  const [customerName, setCustomerName] = useState(user?.user_metadata?.full_name || '');
   const [customerPhone, setCustomerPhone] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<string>('qris');
 
+  useEffect(() => {
+    if (user?.user_metadata?.full_name && !customerName) {
+      setCustomerName(user.user_metadata.full_name);
+    }
+  }, [user]);
+
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0 || isSubmitting) return;
+
+    if (!user) {
+      openAuthModal('checkout');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMessage('');

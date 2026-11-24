@@ -2,8 +2,11 @@ import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
+import { UserAuthProvider } from '@/context/UserAuthContext';
 import CartSlideOver from '@/components/CartSlideOver';
 import QuickEditButton from '@/components/QuickEditButton';
+import AuthModal from '@/components/auth/AuthModal';
+import AiBrandAssistantModal from '@/components/ai/AiBrandAssistantModal';
 import { getSiteSettings } from '@/lib/data';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -61,11 +64,15 @@ export default function RootLayout({
   return (
     <html lang="id" className={jakarta.variable}>
       <body className="font-sans antialiased bg-white text-slate-900 selection:bg-[#0066FF] selection:text-white min-h-screen flex flex-col">
-        <CartProvider>
-          {children}
-          <CartSlideOver />
-          <QuickEditButton />
-        </CartProvider>
+        <UserAuthProvider>
+          <CartProvider>
+            {children}
+            <CartSlideOver />
+            <QuickEditButton />
+            <AuthModal />
+            <AiBrandAssistantModal />
+          </CartProvider>
+        </UserAuthProvider>
       </body>
     </html>
   );

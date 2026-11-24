@@ -2,11 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+import { useUserAuth } from '@/context/UserAuthContext';
 import { formatRupiah } from '@/lib/utils';
 import { X, Trash2, Plus, Minus, ArrowRight, ShoppingBag, ShieldCheck } from 'lucide-react';
 
 export default function CartSlideOver() {
+  const router = useRouter();
   const {
     items,
     isOpen,
@@ -20,6 +23,7 @@ export default function CartSlideOver() {
     total,
     totalQuantity,
   } = useCart();
+  const { user, openAuthModal } = useUserAuth();
 
   if (!isOpen) return null;
 
@@ -186,15 +190,23 @@ export default function CartSlideOver() {
                 </div>
               </div>
 
-              <Link
-                href="/checkout"
-                prefetch={true}
-                onClick={() => setIsOpen(false)}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  if (!user) {
+                    openAuthModal('checkout', () => {
+                      router.push('/checkout');
+                    });
+                  } else {
+                    router.push('/checkout');
+                  }
+                }}
                 className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#0066FF] hover:bg-[#0052cc] text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 transition active:scale-[0.99]"
               >
                 <span>Lanjut ke Pembayaran</span>
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </button>
             </div>
           )}
         </div>

@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import BrandLogo from '@/components/BrandLogo';
 import { useCart } from '@/context/CartContext';
-import { Search, ShoppingBag, Heart, Menu, X, ArrowUpDown, ShieldCheck } from 'lucide-react';
+import { useUserAuth } from '@/context/UserAuthContext';
+import { Search, ShoppingBag, Heart, Menu, X, ArrowUpDown, ShieldCheck, User, LogOut } from 'lucide-react';
 import SearchModal from './SearchModal';
 
 interface NavbarProps {
@@ -14,6 +15,7 @@ interface NavbarProps {
 
 export default function Navbar({ customLogoUrl, brandName = 'Jaya Cell' }: NavbarProps) {
   const { setIsOpen, totalQuantity } = useCart();
+  const { user, openAuthModal, signOut } = useUserAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -81,6 +83,35 @@ export default function Navbar({ customLogoUrl, brandName = 'Jaya Cell' }: Navba
                 <Heart className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
               </Link>
+
+              {/* User Account / Login Trigger */}
+              {user ? (
+                <div className="relative group">
+                  <button
+                    onClick={() => {
+                      if (confirm('Apakah Anda ingin keluar dari akun?')) {
+                        signOut();
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-full text-xs font-bold transition"
+                    title="Klik untuk Keluar"
+                  >
+                    <User className="w-3.5 h-3.5 text-[#0066FF]" />
+                    <span className="hidden sm:inline max-w-[90px] truncate">
+                      {user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Akun'}
+                    </span>
+                    <LogOut className="w-3 h-3 text-slate-400 group-hover:text-red-500" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => openAuthModal('general')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-slate-700 hover:text-[#0066FF] hover:bg-slate-100 rounded-full text-xs font-bold transition"
+                >
+                  <User className="w-4 h-4 text-slate-500" />
+                  <span className="hidden sm:inline">Masuk</span>
+                </button>
+              )}
 
               {/* Cart Slide-Over Trigger */}
               <button

@@ -1,6 +1,9 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Brand } from '@/types';
+import BrandVectorIcon from '@/components/BrandVectorIcon';
 import { ArrowRight } from 'lucide-react';
 
 interface BrandsProps {
@@ -37,16 +40,12 @@ export default function BrandsSection({ brands }: BrandsProps) {
             prefetch={true}
             className="group flex flex-col items-center justify-center p-4 bg-white border border-slate-200/80 hover:border-blue-400 rounded-2xl transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-0.5 text-center"
           >
-            <div className="w-12 h-12 flex items-center justify-center mb-2 p-1">
-              {brand.logo_url ? (
-                <img
-                  src={brand.logo_url}
-                  alt={brand.name}
-                  className="max-h-8 max-w-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-300"
-                />
-              ) : (
-                <span className="text-sm font-bold text-slate-700">{brand.name[0]}</span>
-              )}
+            <div className="w-14 h-12 flex items-center justify-center mb-2 p-1">
+              <BrandVectorIcon
+                name={brand.name}
+                customLogoUrl={brand.logo_url}
+                className="max-h-8 max-w-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-300"
+              />
             </div>
             <span className="text-xs font-bold text-slate-700 group-hover:text-[#0066FF] transition">
               {brand.name}
@@ -57,4 +56,3 @@ export default function BrandsSection({ brands }: BrandsProps) {
     </section>
   );
 }
-

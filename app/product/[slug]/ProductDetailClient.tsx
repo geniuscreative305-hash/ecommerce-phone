@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Product, ProductVariant } from '@/types';
 import { formatRupiah } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
+import { useUserAuth } from '@/context/UserAuthContext';
 import {
   Star,
   ShoppingBag,
@@ -27,6 +28,7 @@ interface ProductDetailClientProps {
 
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const { addItem } = useCart();
+  const { user, openAuthModal } = useUserAuth();
   const variants = product.variants && product.variants.length > 0
     ? product.variants
     : [
@@ -72,21 +74,30 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   };
 
   const handleAddToCart = () => {
-    addItem({
-      productId: product.id,
-      variantId: selectedVariant.id,
-      productName: product.name,
-      brandName: product.brand?.name || 'Smartphone',
-      image: selectedImage,
-      colorName: selectedVariant.color_name,
-      colorHex: selectedVariant.color_hex,
-      storage: selectedVariant.storage,
-      price: selectedVariant.price,
-      quantity,
-      maxStock: selectedVariant.stock,
-    });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    const doAdd = () => {
+      addItem({
+        productId: product.id,
+        variantId: selectedVariant.id,
+        productName: product.name,
+        brandName: product.brand?.name || 'Smartphone',
+        image: selectedImage,
+        colorName: selectedVariant.color_name,
+        colorHex: selectedVariant.color_hex,
+        storage: selectedVariant.storage,
+        price: selectedVariant.price,
+        quantity,
+        maxStock: selectedVariant.stock,
+      });
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    };
+
+    if (!user) {
+      openAuthModal('cart', doAdd);
+      return;
+    }
+
+    doAdd();
   };
 
   const originalPrice =

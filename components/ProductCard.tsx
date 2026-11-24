@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Product, ProductVariant } from '@/types';
 import { formatRupiah } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
+import { useUserAuth } from '@/context/UserAuthContext';
 import { Star, ShoppingBag, Check } from 'lucide-react';
 
 interface ProductCardProps {
@@ -14,6 +15,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, badgeType }: ProductCardProps) {
   const { addItem } = useCart();
+  const { user, openAuthModal } = useUserAuth();
   const [added, setAdded] = useState(false);
 
   const defaultVariant: ProductVariant = product.variants && product.variants.length > 0
@@ -40,22 +42,31 @@ export default function ProductCard({ product, badgeType }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    addItem({
-      productId: product.id,
-      variantId: selectedVariant.id,
-      productName: product.name,
-      brandName: product.brand?.name || 'Smartphone',
-      image: product.images[0] || 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=400&auto=format&fit=crop',
-      colorName: selectedVariant.color_name,
-      colorHex: selectedVariant.color_hex,
-      storage: selectedVariant.storage,
-      price: selectedVariant.price,
-      quantity: 1,
-      maxStock: selectedVariant.stock,
-    });
+    const doAdd = () => {
+      addItem({
+        productId: product.id,
+        variantId: selectedVariant.id,
+        productName: product.name,
+        brandName: product.brand?.name || 'Smartphone',
+        image: product.images[0] || 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=400&auto=format&fit=crop',
+        colorName: selectedVariant.color_name,
+        colorHex: selectedVariant.color_hex,
+        storage: selectedVariant.storage,
+        price: selectedVariant.price,
+        quantity: 1,
+        maxStock: selectedVariant.stock,
+      });
 
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1600);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1600);
+    };
+
+    if (!user) {
+      openAuthModal('cart', doAdd);
+      return;
+    }
+
+    doAdd();
   };
 
   const showBadge =
