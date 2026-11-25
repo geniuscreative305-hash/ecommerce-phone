@@ -158,14 +158,20 @@ BEGIN
             order_id,
             product_id,
             variant_id,
+            product_name,
+            variant_snapshot,
             quantity,
+            price_at_purchase,
             unit_price
         ) VALUES (
             v_new_order_id,
             (v_item.value->>'product_id')::UUID,
             (v_item.value->>'variant_id')::UUID,
+            COALESCE(v_item.value->>'product_name', 'Smartphone'),
+            COALESCE(v_item.value->>'variant_snapshot', 'Varian'),
             (v_item.value->>'quantity')::INT,
-            (v_item.value->>'unit_price')::NUMERIC
+            COALESCE((v_item.value->>'price_at_purchase')::NUMERIC, (v_item.value->>'unit_price')::NUMERIC, 0),
+            COALESCE((v_item.value->>'unit_price')::NUMERIC, (v_item.value->>'price_at_purchase')::NUMERIC, 0)
         );
     END LOOP;
 
